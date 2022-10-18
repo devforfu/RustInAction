@@ -1,3 +1,4 @@
+//! Simulating files one step at a time.
 use std::fmt;
 use std::fmt::Display;
 
@@ -7,21 +8,36 @@ enum FileState {
     Closed,
 }
 
+/// Represents a "file",
+/// which probably lives on a file system.
 #[derive(Debug)]
-struct File {
+pub struct File {
     name: String,
     data: Vec<u8>,
     state: FileState,
 }
 
 impl File {
-    fn new(name: &str) -> Self {
+    /// Creates a new, empty `File`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let f = File::new("name.txt");
+    /// ```
+    pub fn new(name: &str) -> Self {
         Self { 
             name: String::from(name), 
             data: vec![],
             state: FileState::Closed,
         }
     }
+
+    /// Returns the file's length in bytes
+    pub fn len(&self) -> usize { self.data.len() }
+
+    /// Returns the file's name.
+    pub fn name(&self) -> String { self.name.clone() }
 
     fn new_with_data(name: &str, data: &Vec<u8>) -> Self {
         let mut f = File::new(name);
