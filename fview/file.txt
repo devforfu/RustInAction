@@ -1,0 +1,4 @@
+A plain text file.
+
+An example file to test fview utility. It should print a hex view of the
+text written here.
