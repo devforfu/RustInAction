@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 byteorder = "1.2"
+clap = "2"
 crc = "1.7"
 serde = "1.0.147"
 serde_derive = "1.0.147"
@@ -16,5 +17,5 @@ name = "libactionkv"
 path = "src/lib.rs"
 
 [[bin]]
-name = "akv_mem"
-path = "src/akv_mem.rs"
+name = "akv"
+path = "src/akv.rs"
