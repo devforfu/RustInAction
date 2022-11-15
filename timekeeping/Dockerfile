@@ -23,5 +23,6 @@ COPY --from=build /timekeeping/target/release/timekeeping .
 
 ENV action get
 ENV standard timestamp
+ENV datetime unset
 
-CMD ["sh", "-c", "./timekeeping ${action} -s ${standard}"]
+CMD ["sh", "-c", "./timekeeping ${action} -s ${standard} \"${datetime}\""]

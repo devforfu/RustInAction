@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, TimeZone};
 use clap::{App, Arg, ArgMatches};
 
 struct Clock;
@@ -8,9 +8,28 @@ impl Clock {
         Local::now()
     }
 
-    fn set() -> ! {
+    #[cfg(not(windows))]
+    fn set<Tz: TimeZone>(t: DateTime<Tz>) -> () {
+        use libc::{timeval, time_t, suseconds_t};
+        use libc::{settimeofday, timezone};
+    
+        let t = t.with_timezone(&Local);
+        let mut u: timeval = unsafe { std::mem::zeroed() };
+    
+        u.tv_sec = t.timestamp() as time_t;
+        u.tv_usec = t.timestamp_subsec_micros() as suseconds_t;
+    
+        unsafe {
+            let mock_tz: *const timezone = std::ptr::null();
+            settimeofday(&u as *const timeval, mock_tz);
+        }
+    }
+
+    #[cfg(windows)]
+    fn set<Tz: TimeZone>(t: DateTime<Tz>) -> ! {
         unimplemented!()
     }
+
 }
 
 fn parse_args() -> ArgMatches<'static> {
@@ -45,16 +64,30 @@ fn parse_args() -> ArgMatches<'static> {
     app.get_matches()
 }
 
-fn main() {
-    let now = Clock::get();
 
+fn main() {
     let args = parse_args();
     let action = args.value_of("action").unwrap();
     let std = args.value_of("std").unwrap();
 
     if action == "set" {
-        unimplemented!()
+        let t_ = args.value_of("datetime").unwrap();
+        let parser = match std {
+            "rfc2822" => DateTime::parse_from_rfc2822,
+            "rfc3339" => DateTime::parse_from_rfc3339,
+            _ => unimplemented!(),
+        };
+
+        let err_msg = format!("Unable to parse {} according to {}", t_, std);
+
+        let t = parser(t_).expect(&err_msg);
+
+        println!("Requested datetime: {}", t);
+
+        Clock::set(t)
     }
+
+    let now = Clock::get();
 
     match std {
         "timestamp" => println!("{}", now.timestamp()),
