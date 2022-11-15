@@ -1,3 +1,10 @@
+#[cfg(windows)]
+use kernel32;
+#[cfg(not(windows))]
+use libc;
+#[cfg(windows)]
+use winapi;
+
 use chrono::{DateTime, Local, TimeZone};
 use clap::{App, Arg, ArgMatches};
 
@@ -6,6 +13,49 @@ struct Clock;
 impl Clock {
     fn get() -> DateTime<Local> {
         Local::now()
+    }
+
+    #[cfg(windows)]
+    fn set<Tz: TimeZone>(t: DateTime<Tz>) -> () {
+        use chrono::Weekday;
+        use kernel32::SetSystemTime;
+        use winapi::{SYSTEMTIME, WORD};
+
+        let t = t.with_timezone(&Local);
+
+        let mut systime: SYSTEMTIME = unsafe { std::mem::zeroed() };
+
+        let dow = match t.weekday() {
+            Weekday::Mon => 1,
+            Weekday::Tue => 2,
+            Weekday::Wed => 3,
+            Weekday::Thu => 4,
+            Weekday::Fri => 5,
+            Weekday::Sat => 6,
+            Weekday::Sun => 0,
+        };
+
+        let mut ns = t.nanosecond();
+        let leap_second = ns > 1_000_000_000;
+
+        if leap_second {
+            ns -= 1_000_000_000;
+        }
+
+        systime.wYear = t.year() as WORD;
+        systime.wMonth = t.month() as WORD;
+        systime.wDayOfWeek = dow as WORD;
+        systime.wDay = t.day() as WORD;
+        systime.wHour = t.hour() as WORD;
+        systime.wMinute = t.minute() as WORD;
+        systime.wSecond = t.second() as WORD;
+        systime.wMilliseconds = (ns / 1_000_000) as WORD;
+
+        let system_ptr = &systime as *const SYSTEMTIME;
+
+        unsafe {
+            SetSystemTime(system_ptr);
+        }
     }
 
     #[cfg(not(windows))]
@@ -23,11 +73,6 @@ impl Clock {
             let mock_tz: *const timezone = std::ptr::null();
             settimeofday(&u as *const timeval, mock_tz);
         }
-    }
-
-    #[cfg(windows)]
-    fn set<Tz: TimeZone>(t: DateTime<Tz>) -> ! {
-        unimplemented!()
     }
 
 }
